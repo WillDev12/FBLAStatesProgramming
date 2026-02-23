@@ -1,0 +1,24 @@
+Libraries used:
+
+(backend)
+Express (nodejs)
+@willdevv12/simplestore (nodejs)
+Crypto (nodejs)
+
+(app)
+neo-blessed (nodejs)
+
+Resources Used:
+Google Gemini (bugtesting, toubleshooting, general cleaning)
+ChatGPT (troubleshooting Gemini couldn't handle)
+
+curl -X POST http://localhost:3000/user/signup -H "Content-Type: application/json" -d @payload.json
+curl -X GET http://localhost:3000/user/signup/verify/[code]
+
+curl -X POST http://localhost:3000/user/login -H "Content-Type: application/json" -d @payload.json
+curl -X GET http://localhost:3000/user/login/verify/[code]
+curl -X POST http://localhost:3000/data -H "Content-Type: application/json" -d @payload.json
+
+curl -X POST http://localhost:3000/data/business/new -H "Content-Type: application/json" -d @payload.json
+curl -X POST http://localhost:3000/data/business/delete -H "Content-Type: application/json" -d @payload.json
+curl -X POST http://localhost:3000/data/comment -H "Content-Type: application/json" -d @payload.json
