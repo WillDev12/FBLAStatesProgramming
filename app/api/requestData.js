@@ -5,12 +5,11 @@ async function requestData(uuid, screen) {
     const data = response.data || {};
 
     if (response.statusCode >= 400 || data.error) {
-      const message = typeof auth === "string" ? auth : auth.error;
+      const message = typeof data === "string" ? data : data.error;
       dataError(screen, message || "Login failed");
       return;
     }
 
-    screen.destroy();
     return data;
   } catch (e) {
     dataError(screen, "Internal server error.");

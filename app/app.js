@@ -2,8 +2,9 @@ const blessed = require("neo-blessed");
 const loginForm = require("./screens/login.js");
 const launchSearch = require("./api/search.js");
 const requestData = require("./api/requestData.js");
+const api = require("./api/requestAPI.js");
 
-let uuid;
+let uuid, name;
 
 const screen = blessed.screen({
   smartCSR: true,
@@ -25,6 +26,11 @@ function clearContainer() {
     container.children[i].destroy();
   }
   screen.render();
+}
+
+function dataError(message) {
+  screen.destroy();
+  console.error(message);
 }
 
 require("./api/loginHandler.js")(screen, container);
@@ -51,32 +57,88 @@ const menu = blessed.listbar({
 
 container.on("clear", () => clearContainer());
 
-container.on("creation", (data) => {
-  screen.destroy();
-  console.log(data);
+// { name, description, areacode, category, auth }
+// {
+//   name: 'Test Business',
+//   areaCode: '44223',
+//   category: 'Anthropology',
+//   stars: 'This is a test business that is made to test the object.'
+// }
+container.on("creation", async (data) => {
+  const {name, stars, areaCode, category} = data;
+  const request = {
+    name: name,
+    areacode: areaCode,
+    category: category,
+    description: stars,
+    auth: uuid,
+  };
+
+  try {
+    const response = await api.post("/data/business/new", request);
+    // let data = response.data || {};
+
+    if (response.statusCode >= 400)
+      throw new Error("Internal server error.");
+
+    const businesses = await requestData(uuid, screen);
+    
+    launchSearch(container, screen, commands, menu, businesses);
+  } catch (e) {
+    dataError("Internal server error. (home)");
+  }
+  // screen.destroy();
+  // console.log(data);
 });
 
-container.on("comment", (data) => {
-  screen.destroy();
-  console.log(data);
-});
+//{ comment: 'hello world', stars: '5', button: true, businessName: "name" }
+container.on("comment", async (data) => {
+  const {comment, stars, businessName} = data;
+  const request = {
+    "business": businessName, 
+    "comment": comment, 
+    "rating": stars,
+    "auth": uuid
+  };
 
-// loginForm.login(container);
+  try {
+    const response = await api.post("/data/comment", request);
+
+    if (response.statusCode >= 400)
+      throw new Error("Problem contacting server.");
+
+    const businesses = await requestData(uuid, screen);
+    
+    launchSearch(container, screen, commands, menu, businesses);
+  } catch (e) {
+    dataError("Internal server error. (home)");
+    console.log(request);
+    console.log(request.data);
+  }
+});
 
 loginForm.login(container);
 
 container.on("login", async (data) => {
   uuid = data.uuid;
+  name = data.name;
 
   responseData = await requestData(uuid, screen);
 
-  console.log(responseData);
-  // launchSearch(container, screen, commands, menu);
+  // console.log(responseData);
+  launchSearch(container, screen, commands, menu, responseData);
 });
 
-container.on("signup", (data) => {
+container.on("signup", async (data) => {
   uuid = data.uuid;
-  launchSearch(container, screen, commands, menu);
+  name = data.name;
+
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  responseData = await requestData(uuid, screen);
+
+  // console.log(responseData);
+  launchSearch(container, screen, commands, menu, responseData);
 });
 
 screen.key(["C-c", "C-q"], () => process.exit(0));

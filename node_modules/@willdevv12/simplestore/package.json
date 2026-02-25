@@ -1,0 +1,19 @@
+{
+  "name": "@willdevv12/simplestore",
+  "version": "1.0.1",
+  "description": "Quickly store JSON data in local files without the use of a database",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "json",
+    "fs",
+    "storage"
+  ],
+  "author": "WillDev12",
+  "license": "ISC",
+  "dependencies": {
+    "short-uuid": "^5.2.0"
+  }
+}

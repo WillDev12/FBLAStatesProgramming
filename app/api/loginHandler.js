@@ -11,6 +11,12 @@ function loginHandler(screen, container) {
     screen.render();
   });
 
+  container.on("login_transition", (thisForm) => {
+    thisForm.destroy();
+    loginForm.login(container);
+    screen.render();
+  });
+
   // Handle Login Attempts
   container.on("login_attempt", async (data) => {
     const { button, user, pass } = data;
@@ -32,7 +38,7 @@ function loginHandler(screen, container) {
       // Show verification prompt for Login
       const prompt = verify(auth, screen, button);
       prompt.on("verification", (finalData) => {
-        container.emit("login", finalData);
+        container.emit("login", {...finalData, "name": user});
         // screen.destroy();
         // console.log("Login Successful:", finalData);
       });
@@ -61,7 +67,7 @@ function loginHandler(screen, container) {
       // Show verification prompt for Signup
       const prompt = verifySignup(auth, screen, button);
       prompt.on("verification", (userData) => {
-        container.emit("signup", userData);
+        container.emit("signup", {...userData, "name": data.user});
         // screen.destroy();
         // console.log("Account Created:", userData);
       });
@@ -92,8 +98,8 @@ function verifySignup(auth, container, button) {
         return;
       }
 
-      prompt.destroy();
       prompt.emit("verification", result);
+      prompt.destroy();
     } catch (e) {
       errorScreen("Internal server error.", container, button);
     }
@@ -125,8 +131,8 @@ function verify(auth, container, button) {
         return;
       }
 
-      prompt.destroy();
       prompt.emit("verification", result);
+      prompt.destroy();
     } catch (e) {
       errorScreen("Internal server error.", container, promptBtn);
     }

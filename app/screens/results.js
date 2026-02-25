@@ -43,7 +43,9 @@ function build(parent, screen) {
   });
 
   const commentLabels = { commentName, commentRating, commentText };
-  commentsHandler.initiate(screen, backBtn, nextBtn, commentBtn, commentLabels);
+  const toHide = [commentName, commentRating, commentText];
+  // const name = name 
+  commentsHandler.initiate(screen, backBtn, nextBtn, commentBtn, commentLabels, nameText);
 
   //Telecom - {yellow-fg}5{/} - {gray-fg}Basic description of the content that goes about...{/gray-fg}
 
@@ -79,10 +81,10 @@ function build(parent, screen) {
 
     description.content = `Description: {gray-fg}${descriptionText}`;
 
-    if (!reviews.length > 0) commentsContainer.hide();
+    if (!reviews.length > 0) toHide.forEach(el => {el.hide()});
     else {
-      commentsContainer.show();
-      commentsHandler.loadComments(reviews, commentLabels, screen);
+      toHide.forEach(el => {el.show()});
+      commentsHandler.loadComments(reviews, commentLabels, screen, name);
     }
 
     screen.render();
@@ -120,7 +122,7 @@ function build(parent, screen) {
   list.on("destroy", () => {
     screen.removeListener("key tab", toggleFocus);
     screen.removeListener("key S-tab", toggleBack);
-    screen.removeListener("key backspace", handleBack);
+    screen.removeListener("key escape", handleBack);
   });
 
   // screen.append(menu);

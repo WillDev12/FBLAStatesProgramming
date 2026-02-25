@@ -16,6 +16,10 @@ function login(parent) {
 function signup(parent, callback) {
   const thisForm = createForm(parent, "Sign Up");
 
+  thisForm.form.key(["escape"], () => {
+    parent.emit("login_transition", thisForm.form);
+  });
+
   thisForm.form.on("submit", (data) => {
     // Package button reference so errorScreen can restore focus
     const payload = {

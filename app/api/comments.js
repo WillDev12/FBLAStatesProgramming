@@ -2,9 +2,11 @@ const addCommentForm = require("../modules/addComment");
 
 let commentIndex = 0;
 let activeComments = [];
+let activeBusiness;
 
-function loadComments(comments, commentLabels, screen) {
+function loadComments(comments, commentLabels, screen, name) {
   activeComments = comments;
+  activeBusiness = name;
   loadComment(0, commentLabels, screen);
 }
 
@@ -18,22 +20,25 @@ function loadComment(index, commentLabels, screen) {
   screen.render();
 }
 
-function initiate(screen, backBtn, nextBtn, commentBtn, commentLabels) {
+function initiate(screen, backBtn, nextBtn, commentBtn, commentLabels, businessName) {
   commentBtn.on("press", () => {
     const commentForm = addCommentForm(screen);
     screen.append(commentForm);
-
+    
     screen.render();
-
+    
     commentForm.on("cancel", () => {
       setImmediate(() => {
         commentForm.destroy();
         screen.render();
       });
     });
-
+    
     commentForm.on("submit", (formData) => {
       setImmediate(() => {
+        activeBusiness = businessName.content.split(": ")[1];
+        activeBusiness = activeBusiness.replace("{yellow-fg}", "")
+        .replace("{/}", "");
         handleComment(formData, screen);
         commentForm.destroy();
         screen.render();
@@ -55,6 +60,7 @@ function initiate(screen, backBtn, nextBtn, commentBtn, commentLabels) {
 
 function handleComment(formData, screen) {
   const container = screen.children[0];
+  formData.businessName = activeBusiness;
   container.emit("comment", formData);
 }
 

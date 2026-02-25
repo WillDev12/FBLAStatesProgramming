@@ -1,7 +1,7 @@
 const blessed = require("neo-blessed");
 const visualError = require("../modules/error.js");
 
-const categories = ["None", "Sciences", "Electricity", "Anthropology"];
+const categories = ["None", "Technology", "Science", "Business", "E-Commerce", "Healthcare", "Electricity"];
 
 const validateAreaCode = (areaCode, screen) => {
   setImmediate(() => {
@@ -186,6 +186,8 @@ function form(parent, screen, listformData) {
     height: 1,
     width: "shrink",
 
+    keys: true,
+
     content: " List Business ",
 
     style: {
@@ -241,13 +243,12 @@ function form(parent, screen, listformData) {
 
   category.setItems(categories);
 
-  const items = [name, areaCode, stars, category];
+  const items = [name, areaCode, stars, category, createBtn];
 
   items.forEach((n) => {
-    n.on("submit", () => {
+    n.once("submit", () => {
       searchForm.submit();
     });
-
     if (n.type === "list") {
       n.on("select", () => {
         searchForm.submit();
@@ -451,13 +452,22 @@ function showListForm(parent, screen, listformData) {
 
   function handleNavigation(el, ch, key) {
     if (key.full === "escape") {
-      parent.emit("clear");
+      listForm.removeListener("element keypress", handleNavigation);
+
+      // Cancel any active readInput sessions to release screen.grabKeys
+      [name, areaCode, description].forEach(el => {
+        if (el._reading) el.cancel();
+      });
+
+      listForm.destroy();
 
       delete commands.Back;
       commands.Submit.keys = ["enter"];
       menu.setItems(commands);
 
-      require("../api/search.js")(parent, screen, commands, menu);
+      setImmediate(() => {
+        require("../api/search.js")(parent, screen, commands, menu);
+      });
     }
 
     if (key.ctrl && key.name === "s") {
@@ -487,16 +497,21 @@ function showListForm(parent, screen, listformData) {
         name
       );
     } else {
+      listForm.removeListener("element keypress", handleNavigation);
+
+      // Cancel any active readInput sessions to release screen.grabKeys
+      [name, areaCode, description].forEach(el => {
+        if (el._reading) el.cancel();
+      });
+
+      listForm.destroy();
+
+      delete commands.Back;
+      commands.Submit.keys = ["enter"];
+      menu.setItems(commands);
+
       parent.emit("creation", data);
     }
-  });
-
-  [name, areaCode, category].forEach((el) => {
-    el.on("keypress", (ch, key) => {
-      if (key.name === "enter") {
-        name.focus();
-      }
-    });
   });
 
   // CORRECT: Pass the function name, do not call it with ()

@@ -26,7 +26,7 @@ router.post("/business/new", (req, res) => {
     // 2. Assign the new object to the key (No .push()!)
     businessData[name] = {
       description: description,
-      areaCode: Number(areacode),
+      areaCode: parseInt(areacode),
       category: category,
       reviews: [], // Initialize as empty array so you can .push() reviews later
       avg: 0,
@@ -126,7 +126,8 @@ function addComment({ business, comment, rating, name }, res) {
 // }
 
 function uuidCheck(uuid) {
-  const entry = Object.entries(users).find(
+  const freshUsers = ss.loadData("./data", "userData");
+  const entry = Object.entries(freshUsers).find(
     ([name, data]) => data.uuid === uuid
   );
   const username = entry ? entry[0] : null;
