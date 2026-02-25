@@ -1,22 +1,24 @@
-// const blessed = require("neo-blessed");
+// Renders the results screen, which shows a scrollable list of businesses on
+// the left and a detail/comment panel on the right. Selecting a business from
+// the list populates the detail panel. Tab/Shift-Tab cycle focus between
+// interactive elements, and Escape navigates back to the search screen.
+
 const commentsHandler = require("../api/comments.js");
 
-// const screen = blessed.screen({
-//   smartCSR: true,
-//   title: "LocalSearch",
-//   ignoreLocked: ["C-q", "C-c"],
-// });
-
+// Business data passed in via initiate() before build() is called
 let data = {};
 
+// Store the filtered business dataset so build() can access it
 function initiate(incomingData) {
   data = incomingData;
 }
 
 function build(parent, screen) {
+  // Build the left-side results list panel
   const searchBoxObject = require("../modules/searchResults.js")(parent);
   const { searchResults, resultsText, list } = searchBoxObject;
 
+  // Build the right-side description and comments panel
   const descriptionBoxObject = require("../modules/descriptionBox.js")(parent);
   const {
     nameText,
@@ -32,10 +34,12 @@ function build(parent, screen) {
     commentText,
   } = descriptionBoxObject;
 
+  // Pressing Enter on a list item populates the detail panel with that business
   list.key("enter", () => {
     let business = list.items[list.selected].getContent();
     const delimiter = " - ";
 
+    // Extract the business name from the formatted list item string
     business = business.split(delimiter)[0];
 
     const businessData = data[business];
@@ -43,12 +47,20 @@ function build(parent, screen) {
   });
 
   const commentLabels = { commentName, commentRating, commentText };
+  // These elements are hidden when a business has no reviews
   const toHide = [commentName, commentRating, commentText];
-  // const name = name 
-  commentsHandler.initiate(screen, backBtn, nextBtn, commentBtn, commentLabels, nameText);
 
-  //Telecom - {yellow-fg}5{/} - {gray-fg}Basic description of the content that goes about...{/gray-fg}
+  // Wire up the comment navigation and add-comment button
+  commentsHandler.initiate(
+    screen,
+    backBtn,
+    nextBtn,
+    commentBtn,
+    commentLabels,
+    nameText,
+  );
 
+  // Populates the results list with all businesses and auto-selects the first
   function applyData(data) {
     const businesses = Object.keys(data);
     const num = businesses.length;
@@ -59,19 +71,21 @@ function build(parent, screen) {
 
       list.add(
         `${business} - {yellow-fg}${Number(
-          details.avg
-        ).toString()}{/} - {gray-fg}${description}...{/gray-fg}`
+          details.avg,
+        ).toString()}{/} - {gray-fg}${description}...{/gray-fg}`,
       );
     });
 
     resultsText.content = `Results: {yellow-fg}${Number(num).toString()}{/}`;
 
+    // Show the first business in the detail panel by default
     const firstBusiness = data[businesses[0]];
     zoomData(businesses[0], firstBusiness);
 
     screen.render();
   }
 
+  // Updates the detail panel to display the given business's info and reviews
   function zoomData(name, data) {
     const { avg, reviews } = data;
     const descriptionText = data.description;
@@ -81,17 +95,25 @@ function build(parent, screen) {
 
     description.content = `Description: {gray-fg}${descriptionText}`;
 
-    if (!reviews.length > 0) toHide.forEach(el => {el.hide()});
+    // Hide comment widgets if there are no reviews, otherwise load them
+    if (!reviews.length > 0)
+      toHide.forEach((el) => {
+        el.hide();
+      });
     else {
-      toHide.forEach(el => {el.show()});
+      toHide.forEach((el) => {
+        el.show();
+      });
       commentsHandler.loadComments(reviews, commentLabels, screen, name);
     }
 
     screen.render();
   }
 
+  // Tab order for cycling focus between interactive elements
   const focusOrder = [list, description, backBtn, commentBtn, nextBtn];
 
+  // Move focus to the next element in the tab order
   const toggleFocus = () => {
     let currentIndex = focusOrder.findIndex((el) => el.focused);
     let nextIndex = (currentIndex + 1) % focusOrder.length;
@@ -100,6 +122,7 @@ function build(parent, screen) {
     screen.render();
   };
 
+  // Move focus to the previous element in the tab order
   const toggleBack = () => {
     let currentIndex = focusOrder.findIndex((el) => el.focused);
     let prevIndex = (currentIndex - 1 + focusOrder.length) % focusOrder.length;
@@ -108,6 +131,7 @@ function build(parent, screen) {
     screen.render();
   };
 
+  // Escape navigates back to the search screen
   const handleBack = () => {
     parent.emit("re-search");
   };
@@ -119,13 +143,13 @@ function build(parent, screen) {
   screen.on("key S-tab", toggleBack);
   screen.on("key escape", handleBack);
 
+  // Clean up screen-level listeners when the list is destroyed to prevent leaks
   list.on("destroy", () => {
     screen.removeListener("key tab", toggleFocus);
     screen.removeListener("key S-tab", toggleBack);
     screen.removeListener("key escape", handleBack);
   });
 
-  // screen.append(menu);
   screen.render();
 }
 

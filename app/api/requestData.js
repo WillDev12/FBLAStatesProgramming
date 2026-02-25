@@ -1,4 +1,9 @@
+// Fetches the full list of businesses from the backend using the current
+// session UUID. If the request fails, the terminal UI is torn down and the
+// error is logged to the console.
+
 const api = require("./requestAPI.js");
+
 async function requestData(uuid, screen) {
   try {
     const response = await api.post("/data", { auth: uuid });
@@ -16,6 +21,7 @@ async function requestData(uuid, screen) {
   }
 }
 
+// Destroys the terminal screen and prints the error message before exiting
 function dataError(screen, message) {
   screen.destroy();
   console.error(message);

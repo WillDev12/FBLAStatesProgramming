@@ -1,3 +1,7 @@
+// Builds the comment display widget: a non-interactive box containing three
+// text elements for the reviewer's name, star rating, and comment body.
+// Returns references to all three so they can be updated by the comments handler.
+
 const blessed = require("neo-blessed");
 
 function build(parentBox) {
@@ -5,7 +9,6 @@ function build(parentBox) {
     parent: parentBox,
     top: 1,
     height: 4,
-    // padding: { top: 1 },
     width: "100%",
     interactive: false,
   });

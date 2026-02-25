@@ -1,3 +1,6 @@
+// Displays a modal error dialog with a message and an "Okay" button.
+// When dismissed, focus is returned to the specified element.
+
 const blessed = require("neo-blessed");
 
 function errorScreen(msg, parent, focus) {
@@ -34,10 +37,11 @@ function errorScreen(msg, parent, focus) {
 
   exitBtn.on("press", () => {
     box.destroy();
+    // Return focus to the triggering element after the current event loop tick
     setImmediate(() => {
       if (focus && !focus.destroyed) {
         focus.focus();
-        parent.render(); // Use parent or screen.render()
+        parent.render();
       }
     });
   });

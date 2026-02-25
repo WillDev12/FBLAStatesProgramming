@@ -1,27 +1,31 @@
-const http = require("node:http"); // Change from 'https' to 'http'
+// Thin HTTP client for communicating with the local backend server.
+// Wraps Node's built-in http module and resolves with { statusCode, data }
+// so callers can check both the status and parsed JSON body.
+
+const http = require("node:http");
 
 function request(method, path, data = null) {
   return new Promise((resolve, reject) => {
     const postData = data ? JSON.stringify(data) : "";
 
     const options = {
-      hostname: "localhost",
+      hostname: "https://localsearch-sable.vercel.app",
       port: 3000,
       path: path,
       method: method,
-      // No 'agent' with rejectUnauthorized needed for plain http
       headers: {
         "Content-Type": "application/json",
         "Content-Length": Buffer.byteLength(postData),
       },
     };
 
-    // Use http.request instead of https.request
     const req = http.request(options, (res) => {
       let body = "";
+      // Accumulate response chunks
       res.on("data", (chunk) => (body += chunk));
       res.on("end", () => {
         try {
+          // Try to parse as JSON; fall back to raw string if parsing fails
           const response = body ? JSON.parse(body) : {};
           resolve({ statusCode: res.statusCode, data: response });
         } catch (e) {

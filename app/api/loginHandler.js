@@ -1,23 +1,29 @@
+// Listens for login and signup events emitted by the container and handles
+// the full two-step authentication flow: submit credentials → show verification
+// prompt → receive session UUID → emit success event.
+
 const errorScreen = require("../modules/error.js");
 const loginForm = require("../screens/login.js");
 const valPrompt = require("../modules/valPrompt.js");
 const api = require("./requestAPI.js");
 
 function loginHandler(screen, container) {
-  // Transition from Login to Signup screen
+
+  // Switch from the login form to the signup form
   container.on("signup_transition", (thisForm) => {
     thisForm.destroy();
     loginForm.signup(container, true);
     screen.render();
   });
 
+  // Switch from the signup form back to the login form
   container.on("login_transition", (thisForm) => {
     thisForm.destroy();
     loginForm.login(container);
     screen.render();
   });
 
-  // Handle Login Attempts
+  // Handle a login form submission
   container.on("login_attempt", async (data) => {
     const { button, user, pass } = data;
 
@@ -35,19 +41,17 @@ function loginHandler(screen, container) {
         return;
       }
 
-      // Show verification prompt for Login
+      // Credentials accepted — show the verification prompt
       const prompt = verify(auth, screen, button);
       prompt.on("verification", (finalData) => {
-        container.emit("login", {...finalData, "name": user});
-        // screen.destroy();
-        // console.log("Login Successful:", finalData);
+        container.emit("login", { ...finalData, name: user });
       });
     } catch (e) {
       errorScreen("Internal server error. Try again later.", container, button);
     }
   });
 
-  // Handle Signup Attempts
+  // Handle a signup form submission
   container.on("signup_attempt", async (payload) => {
     const { data, button } = payload;
 
@@ -64,12 +68,10 @@ function loginHandler(screen, container) {
         return;
       }
 
-      // Show verification prompt for Signup
+      // Registration accepted — show the verification prompt
       const prompt = verifySignup(auth, screen, button);
       prompt.on("verification", (userData) => {
-        container.emit("signup", {...userData, "name": data.user});
-        // screen.destroy();
-        // console.log("Account Created:", userData);
+        container.emit("signup", { ...userData, name: data.user });
       });
     } catch (e) {
       errorScreen("Server error during signup.", container, button);
@@ -77,7 +79,8 @@ function loginHandler(screen, container) {
   });
 }
 
-// Helper: Verification for Signup
+// Shows the verification prompt for signup and POSTs the code to the server.
+// Emits "verification" on the prompt when the server confirms the code.
 function verifySignup(auth, container, button) {
   const { code } = auth;
   const promptObjet = valPrompt(code, container, "signup");
@@ -93,7 +96,7 @@ function verifySignup(auth, container, button) {
         errorScreen(
           result.error || "Verification failed",
           container,
-          promptBtn
+          promptBtn,
         );
         return;
       }
@@ -108,7 +111,8 @@ function verifySignup(auth, container, button) {
   return prompt;
 }
 
-// Helper: Verification for Login
+// Shows the verification prompt for login and POSTs the code to the server.
+// Emits "verification" on the prompt when the server confirms the code.
 function verify(auth, container, button) {
   const { code } = auth;
   const verificationObject = valPrompt(code, container, "login");
@@ -126,7 +130,7 @@ function verify(auth, container, button) {
         errorScreen(
           result.error || "Verification failed",
           container,
-          promptBtn
+          promptBtn,
         );
         return;
       }

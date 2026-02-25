@@ -1,6 +1,11 @@
+// Builds the left-side results panel shown on the results screen.
+// Contains a result count label, a scrollable list of business entries,
+// and a hint text showing how to navigate and select items.
+
 const blessed = require("neo-blessed");
 
 function build(parent) {
+  // Outer container for the results panel
   const searchResults = blessed.box({
     top: "center",
     left: 0,
@@ -16,6 +21,7 @@ function build(parent) {
     parent: parent,
   });
 
+  // Shows how many results matched the search
   const resultsText = blessed.text({
     parent: searchResults,
     top: 0,
@@ -25,13 +31,7 @@ function build(parent) {
     content: `Results: {yellow-fg}5{/}`,
   });
 
-  // items: [
-  //   `Telecom - {yellow-fg}5{/} - {gray-fg}Basic description of the content that goes about...{/gray-fg}`,
-  //   `Telecom - {yellow-fg}5{/} - {gray-fg}Basic description of the content that goes about...{/gray-fg}`,
-  //   `Telecom - {yellow-fg}5{/} - {gray-fg}Basic description of the content that goes about...{/gray-fg}`,
-  //   `Telecom - {yellow-fg}5{/} - {gray-fg}Basic description of the content that goes about...{/gray-fg}`,
-  // ],
-
+  // Scrollable list of business entries
   const list = blessed.list({
     parent: searchResults,
     top: 1,
@@ -59,6 +59,7 @@ function build(parent) {
     },
   });
 
+  // Navigation hint shown below the list
   blessed.text({
     parent: searchResults,
     top: 12,

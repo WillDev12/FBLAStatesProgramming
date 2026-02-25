@@ -1,7 +1,12 @@
+// Builds the right-side detail panel shown on the results screen.
+// Contains the business name, average star rating, scrollable description,
+// and a comments sub-panel with back/next navigation and an "Add Comment" button.
+
 const blessed = require("neo-blessed");
 const addComment = require("./comment.js");
 
 function build(parent) {
+  // Outer container for the entire detail panel
   const descriptionBox = blessed.box({
     parent: parent,
     top: "center",
@@ -26,6 +31,7 @@ function build(parent) {
     },
   });
 
+  // Business name (top-left of the panel)
   const nameText = blessed.text({
     top: 0,
     parent: descriptionBox,
@@ -34,6 +40,7 @@ function build(parent) {
     content: `Name: {yellow-fg}Hello world{/}`,
   });
 
+  // Average star rating (top-right of the panel)
   const starsText = blessed.text({
     top: 0,
     right: 0,
@@ -43,6 +50,7 @@ function build(parent) {
     content: `Stars: {yellow-fg}5{/}`,
   });
 
+  // Scrollable description text area
   const description = blessed.text({
     top: 2,
     left: 0,
@@ -51,7 +59,7 @@ function build(parent) {
 
     scrollable: true,
     alwaysScroll: true,
-    // mouse: true,
+
     keys: true,
     vi: true,
     tags: true,
@@ -75,6 +83,7 @@ function build(parent) {
     content: `Description: {gray-fg}`,
   });
 
+  // Sub-panel that holds the comments section
   const commentsContainer = blessed.box({
     parent: descriptionBox,
     top: 7,
@@ -91,11 +100,11 @@ function build(parent) {
     content: "Comments:",
   });
 
-  // Comments cannot be over 171 characters long.
-
+  // Individual comment display widget (name, rating, body)
   const commentObject = addComment(commentsContainer);
   const { commentName, commentRating, commentText } = commentObject;
 
+  // Navigate to the previous comment
   const backBtn = blessed.button({
     parent: commentsContainer,
     top: 6,
@@ -112,6 +121,7 @@ function build(parent) {
     },
   });
 
+  // Navigate to the next comment
   const nextBtn = blessed.button({
     parent: commentsContainer,
     top: 6,
@@ -128,6 +138,7 @@ function build(parent) {
     },
   });
 
+  // Open the add-comment form overlay
   const commentBtn = blessed.button({
     parent: commentsContainer,
     top: 6,

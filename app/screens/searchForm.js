@@ -1,8 +1,25 @@
+// Renders the search form and the "List Business" form.
+//
+// The search form lets users filter businesses by name, area code, star rating,
+// and category. Submitting it triggers the filtering logic in search.js.
+//
+// The List Business form (shown when the "List Business" button is pressed)
+// collects the details needed to register a new business listing.
+
 const blessed = require("neo-blessed");
 const visualError = require("../modules/error.js");
 
-const categories = ["None", "Technology", "Science", "Business", "E-Commerce", "Healthcare", "Electricity"];
+const categories = [
+  "None",
+  "Technology",
+  "Science",
+  "Business",
+  "E-Commerce",
+  "Healthcare",
+  "Electricity",
+];
 
+// Validates the area code field: must be numeric and at most 5 digits
 const validateAreaCode = (areaCode, screen) => {
   setImmediate(() => {
     const currentVal = areaCode.getValue();
@@ -19,6 +36,7 @@ const validateAreaCode = (areaCode, screen) => {
   });
 };
 
+// Validates the name field: letters and spaces only
 const validateName = (name, screen) => {
   setImmediate(() => {
     const currentVal = name.getValue();
@@ -35,6 +53,7 @@ const validateName = (name, screen) => {
   });
 };
 
+// Builds and returns the search form with all its input fields and validation
 function form(parent, screen, listformData) {
   const searchForm = blessed.form({
     top: "center",
@@ -69,7 +88,6 @@ function form(parent, screen, listformData) {
     parent: searchForm,
     top: 1,
     name: "name",
-    // keys: true,
 
     inputOnFocus: true,
 
@@ -179,6 +197,7 @@ function form(parent, screen, listformData) {
     },
   });
 
+  // Button that switches to the List Business form
   const createBtn = blessed.button({
     parent: searchForm,
     top: 14,
@@ -202,6 +221,8 @@ function form(parent, screen, listformData) {
     showListForm(parent, screen, listformData);
   });
 
+  // Validates the stars field against a regex that allows values 0–5 with
+  // optional decimals and an optional hyphen-separated range
   const validateStars = () => {
     setImmediate(() => {
       const val = stars.getValue();
@@ -210,15 +231,9 @@ function form(parent, screen, listformData) {
         return parent.render();
       }
 
-      // BREAKDOWN:
-      // ^                   : Start of string
-      // (?:\d(?:\.\d)?)     : Match a digit (0-9) optionally followed by .digit
-      // (?:-(?:\d(?:\.\d)?))?: Optionally match a hyphen followed by another digit/decimal
-      // $                   : End of string
       const validPattern =
         /^(?:[0-4](?:\.\d)?|5(?:\.0)?)(?:-(?:[0-4](?:\.\d)?|5(?:\.0)?))?$/;
 
-      // Use numeric validation alongside regex for strict 0-5 enforcement
       const isWithinRange = val.split("-").every((num) => {
         const n = parseFloat(num);
         return !isNaN(n) && n >= 0 && n <= 5;
@@ -233,6 +248,7 @@ function form(parent, screen, listformData) {
     });
   };
 
+  // Attach live validation to each relevant input
   areaCode.on("keypress", () => {
     validateAreaCode(areaCode, screen);
   });
@@ -243,6 +259,7 @@ function form(parent, screen, listformData) {
 
   category.setItems(categories);
 
+  // Pressing Enter on any field or selecting a category item submits the form
   const items = [name, areaCode, stars, category, createBtn];
 
   items.forEach((n) => {
@@ -256,6 +273,8 @@ function form(parent, screen, listformData) {
     }
   });
 
+  // Prevent Up/Down arrow presses inside the category list from bubbling to
+  // the form and accidentally switching focus
   category.on("element keypress", (el, ch, key) => {
     if (key.name === "up" || key.name === "down") {
       return false;
@@ -265,11 +284,13 @@ function form(parent, screen, listformData) {
   return { searchForm, name };
 }
 
+// Renders the "List Business" form that collects details for a new listing
 function showListForm(parent, screen, listformData) {
   parent.emit("clear");
 
   const { commands, menu } = listformData;
 
+  // Update the menu bar to reflect the new keyboard shortcuts
   commands.Back = { keys: ["esc"] };
   commands.Submit = { keys: ["ctrl+s"] };
   menu.setItems(commands);
@@ -307,7 +328,6 @@ function showListForm(parent, screen, listformData) {
     parent: listForm,
     top: 1,
     name: "name",
-    // keys: true,
 
     inputOnFocus: true,
 
@@ -347,17 +367,6 @@ function showListForm(parent, screen, listformData) {
       },
     },
   });
-
-  // blessed.text({
-  //   parent: listForm,
-  //   top: 12,
-  //   left: 1,
-  //   content:
-  //     "Stars can be expressed in a range -- eg. '5-4'\nDecimals permitted.",
-  //   style: {
-  //     fg: "gray",
-  //   },
-  // });
 
   blessed.text({
     parent: listForm,
@@ -411,7 +420,7 @@ function showListForm(parent, screen, listformData) {
 
     border: "line",
     height: 4,
-    // width: 10,
+
     style: {
       focus: {
         border: {
@@ -430,32 +439,31 @@ function showListForm(parent, screen, listformData) {
     },
   });
 
+  // "None" is not a valid category when creating a listing
   let theseItems = categories.filter((item) => item !== "None");
   category.setItems(theseItems);
 
+  // Prevent Up/Down from changing form focus inside the category list or
+  // description textarea; instead scroll the textarea
   [category, description].forEach((el) => {
     el.on("element keypress", (node, ch, key) => {
       if (key.name === "up" || key.name === "down") {
         if (el === description) {
-          // Scroll the element
           el.scroll(key.name === "up" ? -1 : 1);
-
-          // IMPORTANT: You must render the screen to see the change
           screen.render();
-
-          // Return false to stop the "form" from switching focus to the next input
         }
         return false;
       }
     });
   });
 
+  // Handles Escape (cancel) and Ctrl+S (submit) for the list form
   function handleNavigation(el, ch, key) {
     if (key.full === "escape") {
       listForm.removeListener("element keypress", handleNavigation);
 
-      // Cancel any active readInput sessions to release screen.grabKeys
-      [name, areaCode, description].forEach(el => {
+      // Cancel any active text input to release the keyboard grab
+      [name, areaCode, description].forEach((el) => {
         if (el._reading) el.cancel();
       });
 
@@ -465,6 +473,7 @@ function showListForm(parent, screen, listformData) {
       commands.Submit.keys = ["enter"];
       menu.setItems(commands);
 
+      // Return to the search screen
       setImmediate(() => {
         require("../api/search.js")(parent, screen, commands, menu);
       });
@@ -475,6 +484,7 @@ function showListForm(parent, screen, listformData) {
     }
   }
 
+  // On submission, validate that all required fields are filled and valid
   listForm.on("submit", (data) => {
     if (
       name.style.border === "red" ||
@@ -483,24 +493,21 @@ function showListForm(parent, screen, listformData) {
       areaCode.getValue() === "" ||
       description.getValue() === ""
     ) {
+      // Release the name input and clear focus so the error box can take over
       name.cancel();
-
-      // 2. Clear the screen's focus pointer
       screen.focused = null;
-
-      // 3. Re-render to ensure the cursor moves away from the textbox
       screen.render();
 
       visualError(
         "One or more of your answers are invalid.  Please try again.",
         parent,
-        name
+        name,
       );
     } else {
       listForm.removeListener("element keypress", handleNavigation);
 
-      // Cancel any active readInput sessions to release screen.grabKeys
-      [name, areaCode, description].forEach(el => {
+      // Cancel active inputs before destroying the form
+      [name, areaCode, description].forEach((el) => {
         if (el._reading) el.cancel();
       });
 
@@ -510,11 +517,11 @@ function showListForm(parent, screen, listformData) {
       commands.Submit.keys = ["enter"];
       menu.setItems(commands);
 
+      // Emit "creation" so app.js can POST the new business to the server
       parent.emit("creation", data);
     }
   });
 
-  // CORRECT: Pass the function name, do not call it with ()
   listForm.on("element keypress", handleNavigation);
   areaCode.on("keypress", () => {
     validateAreaCode(areaCode, screen);

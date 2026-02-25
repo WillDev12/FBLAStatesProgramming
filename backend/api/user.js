@@ -1,19 +1,21 @@
-// Import necessary libraries
+// Handles all user authentication routes: login, signup, and their two-step
+// verification flows. Each flow generates a 6-digit code that must be
+// confirmed via a separate GET request before the session UUID is issued.
 
 const express = require("express");
 const router = express.Router();
-const ss = require("@willdevv12/simplestore"); // https://github.com/WillDev12/simpleSave
+const ss = require("@willdevv12/simplestore");
 const crypto = require("crypto");
 
-// Structure data
-
+// Load persisted user data from disk
 const userData = ss.loadData("./data", "userData");
 
+// Holds pending login codes waiting to be verified
 const activeIDs = [];
+// Holds pending signup registrations waiting to be verified
 const pendingSignups = [];
 
-// Handle webhooks
-
+// POST /login — Validates credentials and issues a one-time verification code
 router.post("/login", (req, res) => {
   const { username, password } = req.body;
 
@@ -28,15 +30,14 @@ router.post("/login", (req, res) => {
   }
 });
 
-// --- LOGIN VERIFICATION ---
-
-// 1. GET: Mark as verified
+// GET /login/verify/:id — Marks a login code as verified (simulates clicking a link)
 router.get("/login/verify/:id", (req, res) => {
   const id = Number(req.params.id);
   const user = activeIDs.find((u) => u.code === id);
 
   if (!user) return res.status(404).json({ error: "ID not found" });
   if (Date.now() > user.expires) {
+    // Remove expired codes
     activeIDs.splice(activeIDs.indexOf(user), 1);
     return res.status(401).json({ error: "Code expired" });
   }
@@ -45,19 +46,20 @@ router.get("/login/verify/:id", (req, res) => {
   res.json({ message: "Code marked as verified" });
 });
 
-// 2. POST: Retrieve UUID and cleanup
+// POST /login/verify — Exchanges a verified code for the user's session UUID
 router.post("/login/verify", (req, res) => {
   const { code } = req.body;
   const index = activeIDs.findIndex((u) => u.code === Number(code));
 
   if (index !== -1 && activeIDs[index].verified) {
     const resultUUID = userData[activeIDs[index].account].uuid;
-    activeIDs.splice(index, 1); // Remove after retrieval
+    activeIDs.splice(index, 1); // Clean up after successful retrieval
     return res.json({ uuid: resultUUID });
   }
   res.status(400).json({ error: "Code not verified or not found" });
 });
 
+// POST /signup — Registers a new user and issues a verification code
 router.post("/signup", (req, res) => {
   const { username, password } = req.body;
 
@@ -68,20 +70,19 @@ router.post("/signup", (req, res) => {
   const signupCode = crypto.randomInt(100000, 999999);
   const newUserUUID = crypto.randomUUID();
 
+  // Stage the new user until their code is verified
   pendingSignups.push({
     username,
     password,
     uuid: newUserUUID,
     code: signupCode,
-    expires: Date.now() + 10 * 60 * 1000,
+    expires: Date.now() + 10 * 60 * 1000, // Code expires in 10 minutes
   });
 
   res.json({ code: signupCode });
 });
 
-// --- SIGNUP VERIFICATION ---
-
-// 1. GET: Mark as verified
+// GET /signup/verify/:id — Marks a signup code as verified
 router.get("/signup/verify/:id", (req, res) => {
   const code = Number(req.params.id);
   const user = pendingSignups.find((u) => u.code === code);
@@ -96,7 +97,7 @@ router.get("/signup/verify/:id", (req, res) => {
   res.json({ message: "Signup marked as verified" });
 });
 
-// 2. POST: Create user and retrieve UUID
+// POST /signup/verify — Finalises account creation and returns the new user's UUID
 router.post("/signup/verify", (req, res) => {
   const { code } = req.body;
   const index = pendingSignups.findIndex((u) => u.code === Number(code));
@@ -104,7 +105,7 @@ router.post("/signup/verify", (req, res) => {
   if (index !== -1 && pendingSignups[index].verified) {
     const newUser = pendingSignups[index];
 
-    // Commit to database
+    // Commit the new user to the data store
     userData[newUser.username] = {
       password: newUser.password,
       uuid: newUser.uuid,
@@ -117,8 +118,8 @@ router.post("/signup/verify", (req, res) => {
   res.status(400).json({ error: "Code not verified or not found" });
 });
 
-// Complimentary function (generates unique verification codes)
-
+// Generates a unique 6-digit login code, stores it with a 5-minute expiry,
+// and sends it back to the client
 function returnCode(res, username) {
   const uniqueCode = crypto.randomInt(100000, 999999);
   const expiryTime = Date.now() + 5 * 60 * 1000;
@@ -132,7 +133,5 @@ function returnCode(res, username) {
 
   res.json({ code: uniqueCode });
 }
-
-// Exportation of router for implimentation into the root
 
 module.exports = router;

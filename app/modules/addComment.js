@@ -1,3 +1,7 @@
+// Builds the "Add Comment" form overlay, which collects a comment (up to 171
+// characters) and a star rating (0–5, whole numbers only). Emits "cancel" or
+// "submit" on the form element when the user presses the respective buttons.
+
 const blessed = require("neo-blessed");
 
 function build(screen) {
@@ -106,13 +110,11 @@ function build(screen) {
     content: "{gray-fg}Any comments are permanent.",
   });
 
+  // Validates a textbox on each keypress; turns the border red if invalid
   const validate = (source) => {
-    // Use a slight delay to ensure the textbox value has updated
     setImmediate(() => {
-      const val = source.getValue().trim(); // Trim to handle accidental trailing spaces
+      const val = source.getValue().trim();
 
-      // Updated Regex:
-      // Stars: allow 0-5. Comment: allow 1-171 chars including newlines [\s\S]
       const starsRegex = /^[0-5]$/;
       const commentRegex = /^[\s\S]{1,171}$/;
 
@@ -133,29 +135,28 @@ function build(screen) {
   commentBox.focus();
 
   cancelBtn.on("press", () => addCommentBox.emit("cancel"));
+
+  // Only submit if both fields are valid and non-empty
   submitBtn.on("press", () => {
-    // Check if either box is currently red (invalid)
     const isCommentInvalid = commentBox.style.border.fg === "red";
     const isStarsInvalid = starsBox.style.border.fg === "red";
 
-    // Check if fields are empty (optional, if you want to require input)
     const isCommentEmpty = commentBox.getValue().trim() === "";
     const isStarsEmpty = starsBox.getValue().trim() === "";
 
     if (isCommentInvalid || isStarsInvalid || isCommentEmpty || isStarsEmpty) {
-      // Optionally: Change border to red immediately to show user which is missing
+      // Highlight empty fields as invalid
       if (isCommentEmpty) commentBox.style.border.fg = "red";
       if (isStarsEmpty) starsBox.style.border.fg = "red";
 
       addCommentBox.screen.render();
-      return; // STOP the submission
+      return;
     }
 
-    // If both are valid, proceed
     addCommentBox.submit();
   });
 
-  // Pass a function definition, don't execute it here
+  // Attach live validation to both input fields
   [commentBox, starsBox].forEach((el) => {
     el.on("keypress", () => validate(el));
   });
