@@ -5,7 +5,7 @@
 
 const blessed = require("neo-blessed");
 
-const domain = "localhost:3000";
+const domain = "fblastatesprogramming.onrender.com";
 
 // Builds and returns the verification dialog box.
 // type is either "login" or "signup", which determines the URL path shown.
