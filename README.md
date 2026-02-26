@@ -2,6 +2,18 @@
 
 A terminal-based local business directory application built with Node.js. Users can browse, search, create, and review local businesses — all from the command line.
 
+### Future Business Leaders of America (FBLA)
+
+This software was presented at the Ohio FBLA 2026 State Leadership Conference on Feb 26, 2026. Please refer to the following information in light of project details:
+
+**Sources & Libraries**
+
+Can be located in `./libraries.txt`
+
+Compiled with nodeJS
+
+Hosting provided by [Render](https://render.com)
+
 ## Overview
 
 LocalSearch has two main parts: a **backend REST API** built with Express, and a **terminal UI frontend** built with neo-blessed. Users log in or sign up, then browse and interact with business listings without ever leaving the terminal.

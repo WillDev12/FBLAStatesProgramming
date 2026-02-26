@@ -9,6 +9,8 @@ Crypto (nodejs)
 neo-blessed (nodejs)
 
 Resources Used:
+Prettier (nodejs)
+Render (hosting)
 Google Gemini (bugtesting, toubleshooting, general cleaning)
 ChatGPT (troubleshooting Gemini couldn't handle)
 Claude (for troubleshooting both couldn't handle)

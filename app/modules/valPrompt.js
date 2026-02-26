@@ -28,7 +28,7 @@ function valPrompt(code, parent, type) {
     top: 0,
     left: 2,
     width: 50,
-    content: `Please open the following url in a web browser:\nhttps://${domain}/${type}/verify/${code}\n\nAnd click the button`,
+    content: `Please open the following url in a web browser:\nhttps://${domain}/user/${type}/verify/${code}\n\nAnd click the button`,
   });
 
   const exitBtn = blessed.button({
