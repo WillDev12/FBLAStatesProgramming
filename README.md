@@ -4,6 +4,8 @@ A terminal-based local business directory application built with Node.js. Users 
 
 ### Future Business Leaders of America (FBLA)
 
+![FBLA Logo](https://www-chs.stjohns.k12.fl.us/fbla/wp-content/uploads/sites/22/2025/08/FBLA_Logo_FullName_Horizontal_color-HiRes-scaled.jpg)
+
 This software was presented at the Ohio FBLA 2026 State Leadership Conference on Feb 26, 2026. Please refer to the following information in light of project details:
 
 **Sources & Libraries**
