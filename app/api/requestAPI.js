@@ -1,4 +1,4 @@
-const testing = process.env.testing;
+const testing = process.env.testing === "true";
 const _http = require("node:http");
 const _https = require("node:https");
 const http = testing ? _http : _https;

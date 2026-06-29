@@ -36,7 +36,7 @@ async function writeToClipboard(text) {
   await spawnWrite(tmpXsel, ["--clipboard", "--input"], text);
 }
 
-const domain = process.env.testing ? "localhost:3000" : process.env.serverURL;
+const domain = process.env.testing === "true" ? "localhost:3000" : process.env.serverURL;
 
 function valPrompt(code, parent, type) {
   const url = `${domain}/user/${type}/verify/${code}`;

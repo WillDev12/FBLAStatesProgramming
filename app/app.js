@@ -6,6 +6,7 @@ See libraries.txt for information regarding
 
 const path = require("path");
 require("dotenv").config({ path: path.join(path.dirname(process.execPath), '.env'), quiet: true });
+require("dotenv").config({ path: path.join(__dirname, '..', '.env'), quiet: true });
 
 const blessed = require("neo-blessed");
 const loginForm = require("./screens/login.js");
