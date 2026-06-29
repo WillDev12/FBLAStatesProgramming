@@ -1,11 +1,29 @@
 {
+  "pkg": {
+    "scripts": [
+      "node_modules/neo-blessed/**/*.js"
+    ],
+    "assets": [
+      "node_modules/neo-blessed/usr/**",
+      "node_modules/neo-blessed/data/**",
+      "node_modules/clipboardy/fallbacks/**"
+    ]
+  },
   "dependencies": {
     "@willdevv12/simplestore": "^1.0.1",
+    "clipboardy": "^2.3.0",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "neo-blessed": "^0.2.0"
   },
   "scripts": {
     "test": "node ./backend/server.js",
-    "start": "node ./app/app.js"
+    "start": "node ./app/app.js",
+    "mod": "node ./moderation/index.js",
+    "factoryReset": "node ./moderation/resetServer.js",
+    "build": "node ./build/build.js"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
   }
 }

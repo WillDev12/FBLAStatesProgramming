@@ -1,7 +1,3 @@
-// Builds the "Add Comment" form overlay, which collects a comment (up to 171
-// characters) and a star rating (0–5, whole numbers only). Emits "cancel" or
-// "submit" on the form element when the user presses the respective buttons.
-
 const blessed = require("neo-blessed");
 
 function build(screen) {
@@ -134,10 +130,14 @@ function build(screen) {
 
   commentBox.focus();
 
-  cancelBtn.on("press", () => addCommentBox.emit("cancel"));
+  let submitting = false;
+
+  cancelBtn.on("press", () => { if (!submitting) addCommentBox.emit("cancel"); });
 
   // Only submit if both fields are valid and non-empty
   submitBtn.on("press", () => {
+    if (submitting) return;
+
     const isCommentInvalid = commentBox.style.border.fg === "red";
     const isStarsInvalid = starsBox.style.border.fg === "red";
 
@@ -153,8 +153,13 @@ function build(screen) {
       return;
     }
 
+    submitting = true;
     addCommentBox.submit();
   });
+
+  // Enter advances focus: comment → stars → submit
+  commentBox.on("submit", () => { starsBox.focus(); });
+  starsBox.on("submit", () => { submitBtn.press(); });
 
   // Attach live validation to both input fields
   [commentBox, starsBox].forEach((el) => {

@@ -1,25 +1,9 @@
-// Renders the search form and the "List Business" form.
-//
-// The search form lets users filter businesses by name, area code, star rating,
-// and category. Submitting it triggers the filtering logic in search.js.
-//
-// The List Business form (shown when the "List Business" button is pressed)
-// collects the details needed to register a new business listing.
-
 const blessed = require("neo-blessed");
 const visualError = require("../modules/error.js");
+const formatName = require("../api/formatName.js");
 
-const categories = [
-  "None",
-  "Technology",
-  "Science",
-  "Business",
-  "E-Commerce",
-  "Healthcare",
-  "Electricity",
-];
+const categories = ["None", ...(process.env.categories ? process.env.categories.split(",") : [])];
 
-// Validates the area code field: must be numeric and at most 5 digits
 const validateAreaCode = (areaCode, screen) => {
   setImmediate(() => {
     const currentVal = areaCode.getValue();
@@ -36,7 +20,6 @@ const validateAreaCode = (areaCode, screen) => {
   });
 };
 
-// Validates the name field: letters and spaces only
 const validateName = (name, screen) => {
   setImmediate(() => {
     const currentVal = name.getValue();
@@ -53,7 +36,6 @@ const validateName = (name, screen) => {
   });
 };
 
-// Builds and returns the search form with all its input fields and validation
 function form(parent, screen, listformData) {
   const searchForm = blessed.form({
     top: "center",
@@ -167,6 +149,14 @@ function form(parent, screen, listformData) {
 
   blessed.text({
     parent: searchForm,
+    top: 14,
+    left: 1,
+    tags: true,
+    content: `Logged in as: {yellow-fg}${formatName(listformData.name, listformData.verified)}{/yellow-fg}`,
+  });
+
+  blessed.text({
+    parent: searchForm,
     top: 4,
     left: 13,
     content: "Category",
@@ -197,7 +187,6 @@ function form(parent, screen, listformData) {
     },
   });
 
-  // Button that switches to the List Business form
   const createBtn = blessed.button({
     parent: searchForm,
     top: 14,
@@ -221,8 +210,6 @@ function form(parent, screen, listformData) {
     showListForm(parent, screen, listformData);
   });
 
-  // Validates the stars field against a regex that allows values 0–5 with
-  // optional decimals and an optional hyphen-separated range
   const validateStars = () => {
     setImmediate(() => {
       const val = stars.getValue();
@@ -248,7 +235,6 @@ function form(parent, screen, listformData) {
     });
   };
 
-  // Attach live validation to each relevant input
   areaCode.on("keypress", () => {
     validateAreaCode(areaCode, screen);
   });
@@ -259,11 +245,10 @@ function form(parent, screen, listformData) {
 
   category.setItems(categories);
 
-  // Pressing Enter on any field or selecting a category item submits the form
   const items = [name, areaCode, stars, category, createBtn];
 
   items.forEach((n) => {
-    n.once("submit", () => {
+    n.on("submit", () => {
       searchForm.submit();
     });
     if (n.type === "list") {
@@ -284,13 +269,11 @@ function form(parent, screen, listformData) {
   return { searchForm, name };
 }
 
-// Renders the "List Business" form that collects details for a new listing
 function showListForm(parent, screen, listformData) {
   parent.emit("clear");
 
   const { commands, menu } = listformData;
 
-  // Update the menu bar to reflect the new keyboard shortcuts
   commands.Back = { keys: ["esc"] };
   commands.Submit = { keys: ["ctrl+s"] };
   menu.setItems(commands);
@@ -410,7 +393,7 @@ function showListForm(parent, screen, listformData) {
   const description = blessed.textarea({
     parent: listForm,
     top: 12,
-    name: "stars",
+    name: "description",
 
     keys: true,
 
@@ -439,9 +422,11 @@ function showListForm(parent, screen, listformData) {
     },
   });
 
-  // "None" is not a valid category when creating a listing
   let theseItems = categories.filter((item) => item !== "None");
   category.setItems(theseItems);
+
+  name.on("submit", () => { areaCode.focus(); });
+  areaCode.on("submit", () => { category.focus(); });
 
   // Prevent Up/Down from changing form focus inside the category list or
   // description textarea; instead scroll the textarea
@@ -457,7 +442,8 @@ function showListForm(parent, screen, listformData) {
     });
   });
 
-  // Handles Escape (cancel) and Ctrl+S (submit) for the list form
+  let submitting = false;
+
   function handleNavigation(el, ch, key) {
     if (key.full === "escape") {
       listForm.removeListener("element keypress", handleNavigation);
@@ -480,11 +466,12 @@ function showListForm(parent, screen, listformData) {
     }
 
     if (key.ctrl && key.name === "s") {
+      if (submitting) return;
+      submitting = true;
       listForm.submit();
     }
   }
 
-  // On submission, validate that all required fields are filled and valid
   listForm.on("submit", (data) => {
     if (
       name.style.border === "red" ||
@@ -498,6 +485,7 @@ function showListForm(parent, screen, listformData) {
       screen.focused = null;
       screen.render();
 
+      submitting = false;
       visualError(
         "One or more of your answers are invalid.  Please try again.",
         parent,
@@ -517,7 +505,6 @@ function showListForm(parent, screen, listformData) {
       commands.Submit.keys = ["enter"];
       menu.setItems(commands);
 
-      // Emit "creation" so app.js can POST the new business to the server
       parent.emit("creation", data);
     }
   });

@@ -1,7 +1,3 @@
-// Handles all business data routes: fetching listings, creating and deleting
-// businesses, and posting comments. Every route requires a valid user UUID
-// (auth token) in the request body.
-
 const express = require("express");
 const ss = require("@willdevv12/simplestore");
 
@@ -9,22 +5,76 @@ const router = express.Router();
 const users = ss.loadData("./data", "userData");
 const businessData = ss.loadData("./data", "content");
 
-// POST / — Returns all business listings to authenticated users
+router.get("/", (req, res) => {
+  const { key } = req.body;
+  if (key !== process.env.adminKey) return res.status(401).end();
+  res.json(businessData);
+});
+
+router.delete("/business/:name", (req, res) => {
+  const { key } = req.body;
+  if (key !== process.env.adminKey) return res.status(401).end();
+
+  const name = decodeURIComponent(req.params.name);
+  if (!(name in businessData)) return res.status(404).json({ error: "Business not found" });
+
+  delete businessData[name];
+  ss.updateData("./data", "content", businessData);
+  res.json({ message: "Business deleted" });
+});
+
+router.delete("/business/:name/comment/:index", (req, res) => {
+  const { key } = req.body;
+  if (key !== process.env.adminKey) return res.status(401).end();
+
+  const name = decodeURIComponent(req.params.name);
+  const index = parseInt(req.params.index);
+
+  if (!(name in businessData)) return res.status(404).json({ error: "Business not found" });
+
+  const biz = businessData[name];
+  if (isNaN(index) || index < 0 || index >= biz.reviews.length)
+    return res.status(400).json({ error: "Invalid comment index" });
+
+  biz.reviews.splice(index, 1);
+  biz.avg = biz.reviews.length === 0
+    ? 0
+    : (biz.reviews.reduce((sum, r) => sum + r.stars, 0) / biz.reviews.length).toFixed(1);
+
+  ss.updateData("./data", "content", businessData);
+  res.json({ message: "Comment deleted" });
+});
+
 router.post("/", (req, res) => {
   const { auth } = req.body;
 
   if (uuidCheck(auth).validation) {
-    res.json(businessData);
+    const freshUsers = ss.loadData("./data", "userData");
+    const annotated = {};
+    for (const [bizName, biz] of Object.entries(businessData)) {
+      annotated[bizName] = {
+        ...biz,
+        ownerVerified: !!(freshUsers[biz.owner] && freshUsers[biz.owner].verified),
+        reviews: biz.reviews.map(r => ({
+          ...r,
+          userVerified: !!(freshUsers[r.user] && freshUsers[r.user].verified),
+        })),
+      };
+    }
+    res.json(annotated);
   } else res.sendStatus(401);
 });
 
-// POST /business/new — Creates a new business listing owned by the authenticated user
 router.post("/business/new", (req, res) => {
   const { name, description, areacode, category, auth } = req.body;
   const validation = uuidCheck(auth);
 
   if (!validation.validation) {
     return res.sendStatus(401);
+  }
+
+  if (!name || !description || !areacode || !category) {
+    return res.status(400).json({ error: "Missing required fields" });
   }
 
   if (!(name in businessData)) {
@@ -46,7 +96,6 @@ router.post("/business/new", (req, res) => {
   }
 });
 
-// POST /business/delete — Deletes a business, only if the requester is the owner
 router.post("/business/delete", (req, res) => {
   const { name, auth } = req.body;
   const validation = uuidCheck(auth);
@@ -59,7 +108,6 @@ router.post("/business/delete", (req, res) => {
     return res.status(404).json({ error: "Business not found" });
   }
 
-  // Only the business owner can delete it
   if (businessData[name].owner !== validation.name) {
     return res
       .status(403)
@@ -74,7 +122,6 @@ router.post("/business/delete", (req, res) => {
   }, 3000);
 });
 
-// POST /comment — Adds a review to a business and recalculates its average rating
 router.post("/comment", (req, res) => {
   const { business, comment, rating, auth } = req.body;
   const validation = uuidCheck(auth);
@@ -85,8 +132,6 @@ router.post("/comment", (req, res) => {
   else res.sendStatus(401);
 });
 
-// Pushes a new review onto the business, recalculates the average star rating,
-// then saves the updated data to disk
 function addComment({ business, comment, rating, name }, res) {
   if (business in businessData) {
     const bData = businessData[business];
@@ -97,7 +142,6 @@ function addComment({ business, comment, rating, name }, res) {
       stars: Number(rating),
     });
 
-    // Recalculate average rating across all reviews
     const total = bData.reviews.reduce((sum, r) => sum + r.stars, 0);
     const avg = (total / bData.reviews.length).toFixed(1);
     bData.avg = avg;
@@ -125,3 +169,4 @@ function uuidCheck(uuid) {
 }
 
 module.exports = router;
+module.exports.businessData = businessData;

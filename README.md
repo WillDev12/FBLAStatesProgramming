@@ -31,7 +31,7 @@ LocalSearch has two main parts: a **backend REST API** built with Express, and a
 ## Project Structure
 
 ```
-finalcopy/
+LocalSearch/
 ├── app/                    # Terminal UI (neo-blessed frontend)
 │   ├── app.js              # Entry point for the UI
 │   ├── api/                # API communication layer
@@ -61,6 +61,7 @@ finalcopy/
 ├── data/                   # JSON data store
 │   ├── userData.json       # User accounts
 │   └── content.json        # Business listings
+├── moderation/             # Admin/moderation CLI tools
 └── package.json
 ```
 

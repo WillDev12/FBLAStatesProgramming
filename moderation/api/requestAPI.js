@@ -1,7 +1,11 @@
+require("dotenv").config({ path: require("path").join(__dirname, "../.env") });
+
+// Thin HTTP client for communicating with the local backend server.
+// Wraps Node's built-in http module and resolves with { statusCode, data }
+// so callers can check both the status and parsed JSON body.
+
 const testing = process.env.testing;
-const _http = require("node:http");
-const _https = require("node:https");
-const http = testing ? _http : _https;
+const http = require(testing ? "node:http" : "node:https");
 const host = testing ? "localhost" : process.env.serverURL;
 
 function request(method, path, data = null) {
@@ -12,10 +16,12 @@ function request(method, path, data = null) {
       hostname: host,
       path: path,
       method: method,
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(postData),
-      },
+      headers: data
+        ? {
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(postData),
+          }
+        : {},
     };
 
     if (testing) options.port = 3000;
@@ -42,6 +48,8 @@ function request(method, path, data = null) {
 }
 
 module.exports = {
-  get: (path) => request("GET", path),
+  get: (path, data) => request("GET", path, data),
   post: (path, data) => request("POST", path, data),
+  patch: (path, data) => request("PATCH", path, data),
+  delete: (path, data) => request("DELETE", path, data),
 };

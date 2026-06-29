@@ -1,12 +1,6 @@
-// Reusable form builder for the login and signup screens.
-// When login=true, a "Sign Up" button is also rendered so the user can switch
-// flows without clearing the screen.
-
 const blessed = require("neo-blessed");
 const visualError = require("./error");
 
-// Builds a username/password form with a submit button and optional signup button.
-// Returns { form, submitBtn } so the caller can attach its own submit handler.
 function createForm(parent, text, login) {
 
   const form = blessed.form({
@@ -16,13 +10,11 @@ function createForm(parent, text, login) {
     top: "center",
     left: "center",
     keys: true,
-    vi: true,
     border: "line",
     label: ` ${text} `,
     style: { border: { fg: "blue" } },
   });
 
-  // Username input
   blessed.text({ parent: form, top: 2, left: 2, content: "Username:" });
   const username = blessed.textbox({
     parent: form,
@@ -34,7 +26,6 @@ function createForm(parent, text, login) {
     inputOnFocus: true,
   });
 
-  // Password input (characters are censored/masked)
   blessed.text({ parent: form, top: 4, left: 2, content: "Password:" });
   const password = blessed.textbox({
     parent: form,
@@ -47,8 +38,6 @@ function createForm(parent, text, login) {
     inputOnFocus: true,
   });
 
-  // Submit button — positioned to the left when login=true to make room for
-  // the Sign Up button, otherwise centred
   const submitBtn = blessed.button({
     parent: form,
     name: "submit",
@@ -64,16 +53,19 @@ function createForm(parent, text, login) {
     },
   });
 
-  // Require both fields to be filled before submitting
   submitBtn.on("press", () => {
     if (username.value.trim().length > 0 && password.value.trim().length > 0)
       form.submit();
     else visualError("You need to fill in every value.", parent, submitBtn);
   });
 
-  username.focus();
+  username.on("submit", () => { password.focus(); });
+  password.on("submit", () => { submitBtn.press(); });
 
-  // Only the login form includes a "Sign Up" button
+  // setImmediate ensures focus lands after the screen renders, so it reaches
+  // the textbox itself rather than the form container
+  setImmediate(() => { if (!form.destroyed) username.focus(); });
+
   if (login) {
     const signupBtn = blessed.button({
       parent: form,
@@ -83,6 +75,7 @@ function createForm(parent, text, login) {
       left: "50%",
       shrink: true,
       padding: { left: 1, right: 1 },
+      mouse: true,
       style: {
         bg: "blue",
         focus: { bg: "red" },
@@ -90,7 +83,6 @@ function createForm(parent, text, login) {
       },
     });
 
-    // Bubble the transition event up so loginHandler can swap the screen
     signupBtn.on("press", () => form.emit("signup_transition"));
   }
 

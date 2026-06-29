@@ -1,1 +1,1 @@
-{}
+{"Chipotle":{"description":"We make burritos\nCheck out our menu:\n1. Burritos\n2. Tacos (ish)\n3. Tortillas","areaCode":44012,"category":"Franchise","reviews":[{"user":"user2","comment":"Hello, world!","stars":5},{"user":"user2","comment":"Another comment","stars":4}],"avg":"4.5","owner":"user"},"Five Guys":{"description":"We're another big franchiser -- we make burgers!  Here's to the burger family.","areaCode":44011,"category":"Franchise","reviews":[{"user":"user2","comment":"Five guys is great.","stars":5}],"avg":"5.0","owner":"user2"}}

@@ -4,13 +4,16 @@ Libraries used:
 Express (nodejs)
 @willdevv12/simplestore (nodejs)
 Crypto (nodejs)
+dotenv (nodejs)
 
 (app)
 neo-blessed (nodejs)
+clipboardy (nodejs)
+dotenv (nodejs)
 
 Resources Used:
 Prettier (nodejs)
 Render (hosting)
-Google Gemini (bugtesting, toubleshooting, general cleaning)
+Google Gemini (bugtesting, troubleshooting, general cleaning)
 ChatGPT (troubleshooting Gemini couldn't handle)
-Claude (for troubleshooting both couldn't handle)
+Claude Code (for troubleshooting both couldn't handle, batch edits)

@@ -1,17 +1,15 @@
-// Listens for login and signup events emitted by the container and handles
-// the full two-step authentication flow: submit credentials → show verification
-// prompt → receive session UUID → emit success event.
-
 const errorScreen = require("../modules/error.js");
 const loginForm = require("../screens/login.js");
 const valPrompt = require("../modules/valPrompt.js");
 const api = require("./requestAPI.js");
 
-function loginHandler(screen, container) {
+function loginHandler(screen, container, commands, menu) {
 
   // Switch from the login form to the signup form
   container.on("signup_transition", (thisForm) => {
     thisForm.destroy();
+    commands.Back = { keys: ["esc"] };
+    menu.setItems(commands);
     loginForm.signup(container, true);
     screen.render();
   });
@@ -19,6 +17,8 @@ function loginHandler(screen, container) {
   // Switch from the signup form back to the login form
   container.on("login_transition", (thisForm) => {
     thisForm.destroy();
+    delete commands.Back;
+    menu.setItems(commands);
     loginForm.login(container);
     screen.render();
   });
@@ -93,6 +93,7 @@ function verifySignup(auth, container, button) {
       const result = response.data || {};
 
       if (response.statusCode >= 400 || result.error) {
+        prompt.emit("verify_failed");
         errorScreen(
           result.error || "Verification failed",
           container,
@@ -104,6 +105,7 @@ function verifySignup(auth, container, button) {
       prompt.emit("verification", result);
       prompt.destroy();
     } catch (e) {
+      prompt.emit("verify_failed");
       errorScreen("Internal server error.", container, button);
     }
   });
@@ -127,6 +129,7 @@ function verify(auth, container, button) {
       const result = response.data || {};
 
       if (response.statusCode >= 400 || result.error) {
+        prompt.emit("verify_failed");
         errorScreen(
           result.error || "Verification failed",
           container,
@@ -138,6 +141,7 @@ function verify(auth, container, button) {
       prompt.emit("verification", result);
       prompt.destroy();
     } catch (e) {
+      prompt.emit("verify_failed");
       errorScreen("Internal server error.", container, promptBtn);
     }
   });

@@ -1,2 +1,6 @@
 .vercel
-commands.txt
+.codesandbox
+.devcontainer
+node_modules
+.env
+build/dist

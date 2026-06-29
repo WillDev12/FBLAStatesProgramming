@@ -1,28 +1,21 @@
-// Manages comment navigation and submission on the results screen.
-// Keeps track of which business is active and which comment index is showing,
-// and wires up the back/next/add-comment buttons.
-
 const addCommentForm = require("../modules/addComment");
+const formatName = require("./formatName.js");
 
-// Index of the currently displayed comment
 let commentIndex = 0;
-// Full list of reviews for the active business
 let activeComments = [];
-// Name of the business whose comments are being viewed
 let activeBusiness;
 
-// Sets the active comment list and renders the first comment
 function loadComments(comments, commentLabels, screen, name) {
   activeComments = comments;
   activeBusiness = name;
-  loadComment(0, commentLabels, screen);
+  if (comments.length > 0) loadComment(0, commentLabels, screen);
 }
 
 // Renders a single comment at the given index into the label widgets
 function loadComment(index, commentLabels, screen) {
-  const { user, stars, comment } = activeComments[index];
+  const { user, userVerified, stars, comment } = activeComments[index];
   const { commentName, commentRating, commentText } = commentLabels;
-  commentName.content = `User: {yellow-fg}${user}`;
+  commentName.content = `User: {yellow-fg}${formatName(user, userVerified)}`;
   commentRating.content = `Rating: {yellow-fg}${stars}`;
   commentText.content = `{gray-fg}${comment}`;
   screen.render();
@@ -56,12 +49,9 @@ function initiate(
     // bubble the comment data up to the root container
     commentForm.on("submit", (formData) => {
       setImmediate(() => {
-        activeBusiness = businessName.content.split(": ")[1];
-        activeBusiness = activeBusiness
-          .replace("{yellow-fg}", "")
-          .replace("{/}", "");
         handleComment(formData, screen);
         commentForm.destroy();
+        commentBtn.setContent(" Commenting... ");
         screen.render();
       });
     });
@@ -88,4 +78,10 @@ function handleComment(formData, screen) {
   container.emit("comment", formData);
 }
 
-module.exports = { loadComments, initiate };
+// Jumps directly to a specific comment index (used after a new comment is posted)
+function jumpToComment(index, commentLabels, screen) {
+  commentIndex = index;
+  loadComment(commentIndex, commentLabels, screen);
+}
+
+module.exports = { loadComments, initiate, jumpToComment };

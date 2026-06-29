@@ -1,21 +1,84 @@
-// Handles all user authentication routes: login, signup, and their two-step
-// verification flows. Each flow generates a 6-digit code that must be
-// confirmed via a separate GET request before the session UUID is issued.
+require("dotenv").config();
 
 const express = require("express");
 const router = express.Router();
 const ss = require("@willdevv12/simplestore");
 const crypto = require("crypto");
 
-// Load persisted user data from disk
-const userData = ss.loadData("./data", "userData");
+const htmlOutput = require("../html/loadHtml.js");
+const responsePairs = {
+  badRequest: {
+    text: "Bad Request!",
+    body: "Something went wrong -- you aren't supposed to be here!"
+  },
+  verification: {
+    text: "Success!",
+    body: "Your code has been marked as verified. You may now close this page."
+  }
+};
 
-// Holds pending login codes waiting to be verified
+const userData = ss.loadData("./data", "userData");
+const { businessData } = require("./data");
+
 const activeIDs = [];
-// Holds pending signup registrations waiting to be verified
 const pendingSignups = [];
 
-// POST /login — Validates credentials and issues a one-time verification code
+router.get("/", (req, res) => {
+  try {
+    const { key } = req.body;
+  
+    if (key === process.env.adminKey) return res.json(userData);
+    else throw new Error;
+  } catch (e) {
+    return res.status(401).send(htmlOutput(responsePairs.badRequest));
+  }
+});
+
+router.patch("/:username/verify", (req, res) => {
+  const { key } = req.body;
+  if (key !== process.env.adminKey) return res.status(401).end();
+
+  const { username } = req.params;
+  if (!userData[username]) return res.status(404).json({ error: "User not found" });
+
+  userData[username].verified = !userData[username].verified;
+  ss.updateData("./data", "userData", userData);
+
+  res.json({ verified: userData[username].verified });
+});
+
+router.delete("/:username", (req, res) => {
+  const { key } = req.body;
+
+  if (key !== process.env.adminKey) return res.status(401).end();
+
+  const { username } = req.params;
+  if (!userData[username]) return res.status(404).send({ error: "User not found" });
+
+  for (const bizName of Object.keys(businessData)) {
+    if (businessData[bizName].owner === username) {
+      delete businessData[bizName];
+    }
+  }
+
+  for (const biz of Object.values(businessData)) {
+    const before = biz.reviews.length;
+    biz.reviews = biz.reviews.filter(r => r.user !== username);
+    if (biz.reviews.length !== before) {
+      biz.avg = biz.reviews.length === 0
+        ? 0
+        : (biz.reviews.reduce((sum, r) => sum + r.stars, 0) / biz.reviews.length).toFixed(1);
+    }
+  }
+
+  ss.updateData("./data", "content", businessData);
+
+  delete userData[username];
+  ss.updateData("./data", "userData", userData);
+
+  res.json({ message: "User deleted" });
+});
+
 router.post("/login", (req, res) => {
   const { username, password } = req.body;
 
@@ -30,36 +93,32 @@ router.post("/login", (req, res) => {
   }
 });
 
-// GET /login/verify/:id — Marks a login code as verified (simulates clicking a link)
 router.get("/login/verify/:id", (req, res) => {
   const id = Number(req.params.id);
   const user = activeIDs.find((u) => u.code === id);
 
-  if (!user) return res.status(404).json({ error: "ID not found" });
+  if (!user) return res.status(404).send(htmlOutput({ text: "Internal Server Error", body: "ID not found" }));
   if (Date.now() > user.expires) {
-    // Remove expired codes
     activeIDs.splice(activeIDs.indexOf(user), 1);
-    return res.status(401).json({ error: "Code expired" });
+    return res.status(401).send(htmlOutput(responsePairs.badRequest));
   }
 
   user.verified = true;
-  res.json({ message: "Code marked as verified" });
+  res.send(htmlOutput(responsePairs.verification));
 });
 
-// POST /login/verify — Exchanges a verified code for the user's session UUID
 router.post("/login/verify", (req, res) => {
   const { code } = req.body;
   const index = activeIDs.findIndex((u) => u.code === Number(code));
 
   if (index !== -1 && activeIDs[index].verified) {
-    const resultUUID = userData[activeIDs[index].account].uuid;
+    const account = userData[activeIDs[index].account];
     activeIDs.splice(index, 1); // Clean up after successful retrieval
-    return res.json({ uuid: resultUUID });
+    return res.json({ uuid: account.uuid, verified: !!account.verified });
   }
   res.status(400).json({ error: "Code not verified or not found" });
 });
 
-// POST /signup — Registers a new user and issues a verification code
 router.post("/signup", (req, res) => {
   const { username, password } = req.body;
 
@@ -70,7 +129,6 @@ router.post("/signup", (req, res) => {
   const signupCode = crypto.randomInt(100000, 999999);
   const newUserUUID = crypto.randomUUID();
 
-  // Stage the new user until their code is verified
   pendingSignups.push({
     username,
     password,
@@ -82,22 +140,20 @@ router.post("/signup", (req, res) => {
   res.json({ code: signupCode });
 });
 
-// GET /signup/verify/:id — Marks a signup code as verified
 router.get("/signup/verify/:id", (req, res) => {
   const code = Number(req.params.id);
   const user = pendingSignups.find((u) => u.code === code);
 
-  if (!user) return res.status(404).json({ error: "Invalid code" });
+  if (!user) return res.status(404).send(htmlOutput({ text: "Internal Server Error", body: "ID not found" }));
   if (Date.now() > user.expires) {
     pendingSignups.splice(pendingSignups.indexOf(user), 1);
-    return res.status(401).json({ error: "Signup code expired" });
+    return res.status(401).send(htmlOutput(responsePairs.badRequest));
   }
 
   user.verified = true;
-  res.json({ message: "Signup marked as verified" });
+  res.send(htmlOutput(responsePairs.verification));
 });
 
-// POST /signup/verify — Finalises account creation and returns the new user's UUID
 router.post("/signup/verify", (req, res) => {
   const { code } = req.body;
   const index = pendingSignups.findIndex((u) => u.code === Number(code));
@@ -105,21 +161,19 @@ router.post("/signup/verify", (req, res) => {
   if (index !== -1 && pendingSignups[index].verified) {
     const newUser = pendingSignups[index];
 
-    // Commit the new user to the data store
     userData[newUser.username] = {
       password: newUser.password,
       uuid: newUser.uuid,
+      verified: false,
     };
     ss.updateData("./data", "userData", userData);
 
     pendingSignups.splice(index, 1);
-    return res.json({ uuid: newUser.uuid });
+    return res.json({ uuid: newUser.uuid, verified: false });
   }
   res.status(400).json({ error: "Code not verified or not found" });
 });
 
-// Generates a unique 6-digit login code, stores it with a 5-minute expiry,
-// and sends it back to the client
 function returnCode(res, username) {
   const uniqueCode = crypto.randomInt(100000, 999999);
   const expiryTime = Date.now() + 5 * 60 * 1000;
