@@ -1,6 +1,2 @@
-.vercel
-.codesandbox
-.devcontainer
 node_modules
-.env
 build/dist
